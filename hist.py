@@ -20,7 +20,7 @@ if __name__ == '__main__':
     filename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
     # should be this?
     image = "giza.jpg"
-    filename = [home, 'src', 'python', 'examples', 'data', image].join(os.path.sep)
+    filename = os.path.sep.join([home, 'src', 'python', 'examples', 'data', image])
 
     matchFilename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
     matchFilename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     matchFilename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
     # should be this?
     image = "crowd.jpg"
-    matchFilename = [home, 'src', 'python', 'examples', 'data', image].join(os.path.sep)
+    matchFilename = os.path.sep.join([home, 'src', 'python', 'examples', 'data', image])
 
     im = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
     print('Filename = {0}'.format(filename))
