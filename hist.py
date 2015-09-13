@@ -2,7 +2,7 @@
 PYTHON METHOD DEFINITION
 """
 def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
-    pass
+    return im
 """
 PYTHON TEST HARNESS
 """
@@ -12,23 +12,25 @@ if __name__ == '__main__':
     import ipcv
     import os.path
     import time
+    # should include numpy import? ============================================#
+    import numpy
 
     home = os.path.expanduser('~')
     filename = home + os.path.sep + 'src/python/examples/data/redhat.ppm'
     filename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
     filename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
     filename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
-    # should be this?
-    image = "giza.jpg"
-    filename = os.path.sep.join([home, 'src', 'python', 'examples', 'data', image])
+    # should be this? =========================================================#
+    img = "giza.jpg"
+    filename = os.path.join(home, 'src', 'python', 'examples', 'data', img)
 
     matchFilename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
     matchFilename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
     matchFilename = home + os.path.sep + 'src/python/examples/data/redhat.ppm'
     matchFilename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
-    # should be this?
-    image = "crowd.jpg"
-    matchFilename = os.path.sep.join([home, 'src', 'python', 'examples', 'data', image])
+    # should be this? =========================================================#
+    img = "crowd.jpg"
+    matchFilename = os.path.join(home, 'src', 'python', 'examples', 'data', img)
 
     im = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
     print('Filename = {0}'.format(filename))
