@@ -4,8 +4,16 @@ PYTHON METHOD DEFINITION
 
 import numpy as np
 import cv2
+
+# required only for plotting
 import matplotlib.pyplot as plt
 
+# required because tests don't include it
+import numpy
+
+# side-note, file imports should look like the following?
+# img = "crowd.jpg"
+# matchFilename = os.path.join(home, 'src', 'python', 'examples', 'data', img)
 
 def plotHist(histogram):
     """
@@ -16,6 +24,10 @@ def plotHist(histogram):
     plt.show()
 
 def plotImgHist(im):
+    """
+    Function to display an image as a histogram using the matplotlib library
+    """
+
     channels = []
     if (len(im.shape) == 2):
         # gray-scale image, look at channels [0]
@@ -89,12 +101,11 @@ def build_match_lookup_table(im, target, maxCount):
 
     # build the target (image or pdf) cdf
     tarCDF = build_cdf(target, maxCount)
-    plotHist(tarCDF)
 
     # build the lookup table
     # for every value, get the result from the imgCDF;
     # then, find the first index that exists for that value in the tarCDF.
-    lut = np.arange(maxCount)
+    lut = np.arange(maxCount+1)
     for i in range(maxCount):
         # sometimes our imgCDF is higher than the tarCDF ever is
         # lets put that at the maxCount
@@ -102,8 +113,6 @@ def build_match_lookup_table(im, target, maxCount):
             lut[i] = maxCount
         else:
             lut[i] = np.argmax(np.where( tarCDF >= imgCDF[i], 1, 0 ))
-            print("lut[",i,"]: ", lut[i])
-            print("imgCDF[",i,"]: ", imgCDF[i])
 
     return lut
 
@@ -137,15 +146,10 @@ def build_linear_lookup_table(im, value, dcValues):
     absHighCDF = np.absolute(higherCDF)
     maxIndex = np.argmin(absHighCDF)
 
-    print("building slope")
     # the number of values we want to change, over how many values we'll cover
     # basically, rise over run
     slope = (dcValues-1) / (maxIndex - minIndex)
     intercept = slope*(minIndex)
-    print('maxIndex ' + str(maxIndex))
-    print('minIndex ' + str(minIndex))
-    print('slope ' + str(slope))
-    print('intercept ' + str(intercept))
 
     # create linear array
     linearArray = np.arange(dcValues)
@@ -157,7 +161,7 @@ def build_linear_lookup_table(im, value, dcValues):
 
     linearArray = (slope*linearArray) - intercept
     np.place(linearArray, lowMask, 0)
-    np.place(linearArray, highMask, dcValues)
+    np.place(linearArray, highMask, dcValues - 1)
 
     return linearArray
 
@@ -220,7 +224,6 @@ def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
         # build pdf to match against
         equalizePDF = np.zeros(maxCount)
         equalizePDF.fill(1/maxCount)
-        plotHist(equalizePDF)
 
         # perform match enhancement
         lut = build_match_lookup_table(im, equalizePDF, maxCount)
@@ -231,11 +234,14 @@ def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
 
     outputImage = np.array(outputImage, dtype)
 
+    """
     # Compare Histograms ======================================================#
     print("plot original image")
     plotImgHist(im)
     print("plot output image")
     plotImgHist(outputImage)
+    """
+
     return outputImage
 
 """
@@ -247,25 +253,18 @@ if __name__ == '__main__':
     import ipcv
     import os.path
     import time
-    # should include numpy import? ============================================#
-    import numpy
 
     home = os.path.expanduser('~')
     filename = home + os.path.sep + 'src/python/examples/data/redhat.ppm'
-    filename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
     filename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
     filename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
-    # should be this? =========================================================#
-    img = "giza.jpg"
-    filename = os.path.join(home, 'src', 'python', 'examples', 'data', img)
+    filename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
 
-    matchFilename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
     matchFilename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
     matchFilename = home + os.path.sep + 'src/python/examples/data/redhat.ppm'
     matchFilename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
-    # should be this? =========================================================#
-    img = "crowd.jpg"
-    matchFilename = os.path.join(home, 'src', 'python', 'examples', 'data', img)
+    matchFilename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
+
 
     im = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
     print('Filename = {0}'.format(filename))
