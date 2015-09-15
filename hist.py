@@ -96,17 +96,11 @@ def build_linear_lookup_table(im, value, dcValues):
     # get the lower end of the CDF
     lowerCDF = cdf - ((value/2)/100)
     absLowCDF = np.absolute(lowerCDF)
-
-    plotHist(absLowCDF)
-
     minIndex = np.argmin(absLowCDF)
 
     # get the higher end of the CDF
     higherCDF = (-cdf+1) - ((value/2)/100)
     absHighCDF = np.absolute(higherCDF)
-
-    plotHist(absHighCDF)
-
     maxIndex = np.argmin(absHighCDF)
 
     print("building slope")
@@ -179,6 +173,7 @@ def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
 
         # perform linear enhancement
         lut = build_linear_lookup_table(im, int(linearValue), maxCount + 1)
+        print("lut for linear enhancement")
         plotHist(lut)
         outputImage = lut[im]
 
@@ -190,15 +185,32 @@ def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
             imgCDF = build_cdf(im, maxCount)
             plotHist(imgCDF)
 
+            print("tarCDF")
+            tarCDF = build_cdf(target, maxCount)
+            plotHist(tarCDF)
+
             print("lut")
-            lut = build_cdf(target, maxCount)
+            # for every value, get the result from the imgCDF;
+            # then, find the first index that exists for that value in
+            # the tarCDF.
+            lut = np.arange(maxCount)
+            for i in range(maxCount):
+                # sometimes our imgCDF is higher than the tarCDF ever is
+                # lets put that at the maxCount
+                if (imgCDF[i] > np.amax(tarCDF)):
+                    lut[i] = maxCount
+                else:
+                    lut[i] = np.argmax(np.where( tarCDF >= imgCDF[i], 1, 0 ))
+
+            print(lut)
             plotHist(lut)
 
             outputImage = lut[im]
 
-
     outputImage = np.array(outputImage, dtype)
+    print("plot original image")
     plotImgHist(im)
+    print("plot output image")
     plotImgHist(outputImage)
     return outputImage
 """
@@ -253,7 +265,6 @@ if __name__ == '__main__':
     cv2.namedWindow(filename + ' (Linear 1%)', cv2.WINDOW_AUTOSIZE)
     cv2.imshow(filename + ' (Linear 1%)', enhancedImage)
 
-    """
     print('Equalized ...')
     startTime = time.time()
     enhancedImage = ipcv.histogram_enhancement(im, etype='equalize')
@@ -276,5 +287,5 @@ if __name__ == '__main__':
     print('Elapsed time = {0} [s]'.format(time.time() - startTime))
     cv2.namedWindow(filename + ' (Matched - Distribution)', cv2.WINDOW_AUTOSIZE)
     cv2.imshow(filename + ' (Matched - Distribution)', enhancedImage)
-    """
+
     action = ipcv.flush()
