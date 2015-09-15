@@ -41,6 +41,9 @@ def build_cdf(a, dcValues):
 
     Returns:
         a single-dimension array cdf
+
+    Raises:
+        ValueError: image shape is not 2 (gray-scale) or 3 (color)
     """
     if (len(a.shape) == 1):
         # it's a pdf
@@ -56,7 +59,7 @@ def build_cdf(a, dcValues):
             # color image, channel [0] - blue, [1] - green, [2] - red
             channels = [0,1,2]
         else:
-            raise ValueError("Could not determine number of channels for the image")
+            raise ValueError("Could not determine number of channels for image")
 
         # images, channels, mask, histSize, ranges
         hist = cv2.calcHist([a],channels,None,[dcValues],[0,dcValues])
@@ -69,6 +72,40 @@ def build_cdf(a, dcValues):
 
     return cdf
 
+def build_match_lookup_table(im, target, maxCount):
+    """
+    Function to build lookup table based on another image or pdf
+
+    Args:
+        im (array): image with initial histogram to be modified
+        target (array): image or pdf to modify the im's histogram
+        maxCount (int): maximum digital counts for the image
+
+    Returns:
+        a lookup table to perform on a histogram
+    """
+    # build the image cdf
+    imgCDF = build_cdf(im, maxCount)
+
+    # build the target (image or pdf) cdf
+    tarCDF = build_cdf(target, maxCount)
+    plotHist(tarCDF)
+
+    # build the lookup table
+    # for every value, get the result from the imgCDF;
+    # then, find the first index that exists for that value in the tarCDF.
+    lut = np.arange(maxCount)
+    for i in range(maxCount):
+        # sometimes our imgCDF is higher than the tarCDF ever is
+        # lets put that at the maxCount
+        if (imgCDF[i] > np.amax(tarCDF)):
+            lut[i] = maxCount
+        else:
+            lut[i] = np.argmax(np.where( tarCDF >= imgCDF[i], 1, 0 ))
+            print("lut[",i,"]: ", lut[i])
+            print("imgCDF[",i,"]: ", imgCDF[i])
+
+    return lut
 
 def build_linear_lookup_table(im, value, dcValues):
     """
@@ -81,9 +118,6 @@ def build_linear_lookup_table(im, value, dcValues):
 
     Returns:
         a lookup table to perform on a histogram
-
-    Raises:
-        ValueError: image shape is not 2 (gray-scale) or 3 (color)
     """
 
     # get the cdf
@@ -148,7 +182,7 @@ def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
     Raises:
         TypeError: if image is not a numpy ndarray
         TypeError: if etype is not a string value (and no supplied target)
-
+        ValueError: if etype is not 'linear', 'match', or 'equalize'
     """
 
     outputImage = np.zeros(np.shape(im))
@@ -173,46 +207,37 @@ def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
 
         # perform linear enhancement
         lut = build_linear_lookup_table(im, int(linearValue), maxCount + 1)
-        print("lut for linear enhancement")
-        plotHist(lut)
         outputImage = lut[im]
 
     elif (etype == "match"):
-        if (not isinstance(im, np.ndarray)):
+        if (not isinstance(target, np.ndarray)):
             raise TypeError("target is not a numpy ndarray")
         else:
-            print("imgCDF")
-            imgCDF = build_cdf(im, maxCount)
-            plotHist(imgCDF)
-
-            print("tarCDF")
-            tarCDF = build_cdf(target, maxCount)
-            plotHist(tarCDF)
-
-            print("lut")
-            # for every value, get the result from the imgCDF;
-            # then, find the first index that exists for that value in
-            # the tarCDF.
-            lut = np.arange(maxCount)
-            for i in range(maxCount):
-                # sometimes our imgCDF is higher than the tarCDF ever is
-                # lets put that at the maxCount
-                if (imgCDF[i] > np.amax(tarCDF)):
-                    lut[i] = maxCount
-                else:
-                    lut[i] = np.argmax(np.where( tarCDF >= imgCDF[i], 1, 0 ))
-
-            print(lut)
-            plotHist(lut)
-
+            # perform match enhancement
+            lut = build_match_lookup_table(im, target, maxCount)
             outputImage = lut[im]
+    elif (etype == "equalize"):
+        # build pdf to match against
+        equalizePDF = np.zeros(maxCount)
+        equalizePDF.fill(1/maxCount)
+        plotHist(equalizePDF)
+
+        # perform match enhancement
+        lut = build_match_lookup_table(im, equalizePDF, maxCount)
+        outputImage = lut[im]
+
+    else:
+        raise(ValueError, "etype must be 'linear', 'match', or 'equalize'")
 
     outputImage = np.array(outputImage, dtype)
+
+    # Compare Histograms ======================================================#
     print("plot original image")
     plotImgHist(im)
     print("plot output image")
     plotImgHist(outputImage)
     return outputImage
+
 """
 PYTHON TEST HARNESS
 """
