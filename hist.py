@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 
 # required only for plotting
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 # required because tests don't include it
 import numpy
@@ -57,24 +57,20 @@ def build_cdf(a, dcValues):
     Raises:
         ValueError: image shape is not 2 (gray-scale) or 3 (color)
     """
-    if (len(a.shape) == 1):
+    if (len(np.shape(a)) == 1):
         # it's a pdf
         pdf = a
     else:
         # get histogram from the image
         # first check if image is gray-scale or not
-        channels = []
-        if (len(a.shape) == 2):
+        if (len(np.shape(a)) == 2):
             # gray-scale image, look at channels [0]
-            channels = [0]
-        elif (len(a.shape) == 3):
-            # color image, channel [0] - blue, [1] - green, [2] - red
-            channels = [0,1,2]
+            # images, channels, mask, histSize, ranges
+            hist = cv2.calcHist([a],[0],None,[dcValues],[0,dcValues])
         else:
-            raise ValueError("Could not determine number of channels for image")
-
-        # images, channels, mask, histSize, ranges
-        hist = cv2.calcHist([a],channels,None,[dcValues],[0,dcValues])
+            raise ValueError("Invalid number of channels found: {}".format(
+                len(np.shape(a))
+            ))
 
         # get PDF of histogram
         pdf = hist / np.prod(np.shape(a))
@@ -96,6 +92,7 @@ def build_match_lookup_table(im, target, maxCount):
     Returns:
         a lookup table to perform on a histogram
     """
+
     # build the image cdf
     imgCDF = build_cdf(im, maxCount)
 
@@ -165,6 +162,45 @@ def build_linear_lookup_table(im, value, dcValues):
 
     return linearArray
 
+def build_color_linear_lookup_table(im, value, dcValues):
+    """
+    Function to build lookup table for a given color image
+
+    Refer to the build_linear_lookup_table for a better understanding of the
+    function.
+
+    Returns:
+        several lookup table to perform on each color-band's histogram
+    """
+    blut = build_linear_lookup_table(im[:,:,0], value, dcValues)
+    glut = build_linear_lookup_table(im[:,:,1], value, dcValues)
+    rlut = build_linear_lookup_table(im[:,:,2], value, dcValues)
+
+    return np.array([blut, glut, rlut])
+
+def build_color_match_lookup_table(im, target, maxCount):
+    """
+    Function to build lookup table for a given color image
+
+    Refer to the build_match_lookup_table for a better understanding of the
+    function.
+
+    Returns:
+        several lookup table to perform on each color-band's histogram
+    """
+    # check if target is color
+    if (len(np.shape(target)) == 3):
+        # color target
+        blut = build_match_lookup_table(im[:,:,0], target[:,:,0], maxCount)
+        glut = build_match_lookup_table(im[:,:,1], target[:,:,1], maxCount)
+        rlut = build_match_lookup_table(im[:,:,2], target[:,:,2], maxCount)
+    else:
+        blut = build_match_lookup_table(im[:,:,0], target, maxCount)
+        glut = build_match_lookup_table(im[:,:,1], target, maxCount)
+        rlut = build_match_lookup_table(im[:,:,2], target, maxCount)
+
+    return np.array([blut, glut, rlut])
+
 def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
     """
     Function to run histogram enhancement and histogram matching for a given
@@ -209,25 +245,50 @@ def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
             # check if "linear" was not followed by a digit
             raise ValueError("linear etype should contain a digit")
 
+        # linear percentage to enhance by
+        linPct = int(linearValue)
+
         # perform linear enhancement
-        lut = build_linear_lookup_table(im, int(linearValue), maxCount + 1)
-        outputImage = lut[im]
+        if (len(np.shape(im)) == 3):
+            # color image, build special lookup table
+            lut = build_color_linear_lookup_table(im, linPct, maxCount + 1)
+            outputImage[:,:,0] = lut[0][im[:,:,0]]
+            outputImage[:,:,1] = lut[1][im[:,:,1]]
+            outputImage[:,:,2] = lut[2][im[:,:,2]]
+        else:
+            lut = build_linear_lookup_table(im, linPct, maxCount + 1)
+            outputImage = lut[im]
 
     elif (etype == "match"):
         if (not isinstance(target, np.ndarray)):
             raise TypeError("target is not a numpy ndarray")
         else:
             # perform match enhancement
-            lut = build_match_lookup_table(im, target, maxCount)
-            outputImage = lut[im]
+            if (len(np.shape(im)) == 3):
+                # color image, build special lookup table
+                lut = build_color_match_lookup_table(im, target, maxCount)
+                outputImage[:,:,0] = lut[0][im[:,:,0]]
+                outputImage[:,:,1] = lut[1][im[:,:,1]]
+                outputImage[:,:,2] = lut[2][im[:,:,2]]
+            else:
+                lut = build_match_lookup_table(im, target, maxCount)
+                outputImage = lut[im]
+
     elif (etype == "equalize"):
         # build pdf to match against
         equalizePDF = np.zeros(maxCount)
         equalizePDF.fill(1/maxCount)
 
         # perform match enhancement
-        lut = build_match_lookup_table(im, equalizePDF, maxCount)
-        outputImage = lut[im]
+        if (len(np.shape(im)) == 3):
+            # color image, build special lookup table
+            lut = build_color_match_lookup_table(im, equalizePDF, maxCount)
+            outputImage[:,:,0] = lut[0][im[:,:,0]]
+            outputImage[:,:,1] = lut[1][im[:,:,1]]
+            outputImage[:,:,2] = lut[2][im[:,:,2]]
+        else:
+            lut = build_match_lookup_table(im, equalizePDF, maxCount)
+            outputImage = lut[im]
 
     else:
         raise(ValueError, "etype must be 'linear', 'match', or 'equalize'")
@@ -256,15 +317,14 @@ if __name__ == '__main__':
 
     home = os.path.expanduser('~')
     filename = home + os.path.sep + 'src/python/examples/data/redhat.ppm'
+    filename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
     filename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
     filename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
-    filename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
 
     matchFilename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
     matchFilename = home + os.path.sep + 'src/python/examples/data/redhat.ppm'
-    matchFilename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
     matchFilename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
-
+    matchFilename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
 
     im = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
     print('Filename = {0}'.format(filename))
