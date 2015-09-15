@@ -47,7 +47,6 @@ def build_cdf(a, dcValues):
         a (array): array to build the cdf from.
             If the shape is 1 dimensional, it is assumed to be a pdf
             If the shape is 2 dimensional, it is assumed to be a gray-scale img
-            If the shape is 3 dimensional, it is assumed to be a color image
         dcValues (int): maximum value of any element in the array
             For images this will be 255
 
@@ -65,7 +64,7 @@ def build_cdf(a, dcValues):
         # first check if image is gray-scale or not
         if (len(np.shape(a)) == 2):
             # gray-scale image, look at channels [0]
-            # images, channels, mask, histSize, ranges
+            # args: images, channels, mask, histSize, ranges
             hist = cv2.calcHist([a],[0],None,[dcValues],[0,dcValues])
         else:
             raise ValueError("Invalid number of channels found: {}".format(
@@ -73,6 +72,7 @@ def build_cdf(a, dcValues):
             ))
 
         # get PDF of histogram
+        # probability is the total histogram value, divided by total pixels
         pdf = hist / np.prod(np.shape(a))
 
     # get CDF of histogram
@@ -221,7 +221,8 @@ def histogram_enhancement(im, etype='linear2', target=None, maxCount=255):
         the enhanced image
     Raises:
         TypeError: if image is not a numpy ndarray
-        TypeError: if etype is not a string value (and no supplied target)
+        TypeError: if target is not a numpy ndarray when performing a match
+        ValueError: if etype did not contain a digit: e.g. 'linear3'
         ValueError: if etype is not 'linear', 'match', or 'equalize'
     """
 
