@@ -5,39 +5,12 @@ PYTHON METHOD DEFINITION
 import numpy as np
 import cv2
 
-# required only for plotting
-#import matplotlib.pyplot as plt
-
 # required because tests don't include it
 import numpy
 
 # side-note, file imports should look like the following?
 # img = "crowd.jpg"
 # matchFilename = os.path.join(home, 'src', 'python', 'examples', 'data', img)
-
-def plotHist(histogram):
-    """
-    Function to display the histogram using the matplotlib library
-    """
-
-    plt.plot(histogram)
-    plt.show()
-
-def plotImgHist(im):
-    """
-    Function to display an image as a histogram using the matplotlib library
-    """
-
-    channels = []
-    if (len(im.shape) == 2):
-        # gray-scale image, look at channels [0]
-        channels = [0]
-    elif (len(im.shape) == 3):
-        # color image, channel [0] - blue, [1] - green, [2] - red
-        channels = [0,1,2]
-
-    hist = cv2.calcHist([im],channels,None,[255],[0,255])
-    plotHist(hist)
 
 def build_cdf(a, dcValues):
     """
