@@ -1,12 +1,17 @@
 # required only for plotting
 import matplotlib.pyplot as plt
 
-def plotHist(histogram):
+def plotHist(histogram, verts=[]):
     """
     Function to display the histogram using the matplotlib library
     """
 
     plt.plot(histogram)
+
+    # verts is a list of vertical lines to display
+    for i in verts:
+        plt.axvline(i)
+
     plt.show()
 
 def plotImgHist(im):

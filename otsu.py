@@ -2,161 +2,71 @@
 PYTHON METHOD DEFINITION
 """
 import numpy as np
+import cv2
+import ipcv
 
-def p(im, i):
-    """
-    Function to get the probability of pixels at level i, for the entire image
-
-    Args:
-        im (array): image or histogram
-        i (array or int): pixel level
-
-    Returns:
-        a probability of a pixel at level i
-    """
-
-    if (len(im.shape()) == 2):
-        # an image, we need to get a histogram
-        hist = cv2.calcHist([im],[0],None,[255],[0,255])
-        size = np.cumprod(im.shape())
-    elif (len(im.shape()) == 1):
-        hist = im;
-        size = np.cumsum(hist)
-    else:
-        raise ValueError("Shape of image is not a grayscale image or histogram")
-
-    return (hist[i] / size)
-
-def histSliceProbabilty(im, start, end):
-    """
-    Function to return a slice of a histogram of probabilities for each level
-
-    Args:
-        im (array): image to convert to histogram and evaluate
-        start (int): first pixel level to start evaluating class occurance
-            value is inclusive
-        end (int): pixel level to stop evaluating class occurance probability
-            value is exclusive
-
-    Returns:
-        probability of each level in the histogram
-    """
-
-    # build the histogram and slice it to our start and end range
-    hist = cv2.calcHist([im],[0],None,[255],[0,255])
-    histSlice = hist[start:end]
-
-    # get the entire size of the image, and build the probability for ths hist
-    size = np.cumprod(im.shape())
-    result = histSlice / size
-
-    return result
-
-def w(im, start, end, maxCount=255):
+def w(im, i, maxCount=255):
     """
     Function to evaluate probability of class occurance
 
     Args:
         im (array): image to convert to histogram and evaluate
-        start (int): first pixel level to start evaluating class occurance
-            value is inclusive
-        end (int): pixel level to stop evaluating class occurance probability
-            value is exclusive
+        i (int): pixel level evaluating class occurance probability
         maxCount (option[int]): total number of pixel levels possible
             shortcut for total class variance squared
 
     Returns:
-        probability of class occurance in the range specified
+        probability of class occurance at i
     """
 
-    if ((start == 0) and (end == maxCount)):
-        return 1
-
     # get histogram of probabilities
-    histSliceProbs = histSliceProbabilty(im, start, end)
+    hist = cv2.calcHist([im],[0],None,[255],[0,255])
+    histProbs = hist / np.cumprod(np.shape(im))[-1]
 
     # get the cummulative sum of all elements in the slice
-    return np.cumsum(histSliceProbs)
+    return np.cumsum(histProbs)[i]
 
-def u(im, start, end):
+def u(im, i):
     """
-    Function to evaulate the class mean levels in the range specified
+    Function to evaulate the class mean levels
 
     Args:
         im (array): image to convert to histogram and evaluate
-        start (int): first pixel level to start evaluating mean levels
-            value is inclusive
-        end (int): pixel level to stop evaluating class mean levels
-            value is exclusive
+        i (int): pixel level to evaluating mean levels
 
     Returns:
-        class mean level for the range specified
+        class mean level for i
     """
-
-    # build the histogram and slice it to our start and end range
-    iHist = np.arange(end)
-    histSlice = iHist[start:end]
 
     # get histogram of probabilities
-    histSliceProbs = histSliceProbabilty(im, start, end)
+    hist = cv2.calcHist([im],[0],None,[255],[0,255])
+    histProbs = hist / np.cumprod(np.shape(im))[-1]
 
-    histSliceMean = histSlice * histSliceProbs
+    # build array of indicies
+    indHist = np.array(hist.max())
 
-    return np.cumsum(histSliceMean)
+    histMean = indHist * histProbs
 
-def class_variance_squared(im, start, end):
-    """
-    Function to evaulate the class variance (squared) in the range specified
+    result = np.cumsum(histMean)[i] * w(im, i)
+    return result
 
-    Args:
-        im (array): image to convert to histogram and evaluate
-        start (int): first pixel level to start evaluating class variance
-            value is inclusive
-        end (int): pixel level to stop evaluating class variance
-            value is exclusive
-
-    Returns:
-        class variance (squared) for the range specified
-    """
-
-    # get mean level for range
-    meanLevel = u(im, start, end)
-
-    # build the histogram and slice it to our start and end range
-    iHist = np.arange(end)
-    histSlice = iHist[start:end]
-
-    # build array of histogram probabilities
-    histProbs = histSliceProbabilty(im, start, end)
-
-    # difference of mean and the histLevel
-    meanDiff = (histSlice - meanLevel)
-
-    resultHist = (meanDiff*meanDiff) * (histProbs/w(im, start, end))
-
-    return np.cumsum(resultHist)
-
-def class_variance_b_squared(im, start, end, maxCount=255):
+def class_variance_b_squared(im, i, maxCount=255):
     """
     Function to get the class variance b squared, as described in otsu's paper
 
     Args:
         im (array): image to convert to histogram and evaluate
-        start (int): first pixel level to start evaluating class variance
-            value is inclusive
-        end (int): pixel level to stop evaluating class variance
-            value is exclusive
+        i (int): pixel level to evaluating class variance
         maxCount (option[int]): total number of pixel levels possible
             shortcut for total class variance squared
 
     Returns:
-        class variance b (squared) for the range specified
+        class variance b (squared) for the pixel level
     """
 
-    # evaluation of k for start to end
-    wk = w(im, start, end)
+    wk = w(im, i, maxCount)
 
-    numerator = (u(im, 0, maxCount) * wk - u(im, start, end))**2
+    numerator = ((u(im, maxCount-1) * wk) - u(im, i))**2
     denominator = wk * (1 - wk)
 
     return numerator/denominator
@@ -183,13 +93,33 @@ def otsu_threshold(im, maxCount=255, verbose=False):
     # type checking, look at the above Raises section
     if (not isinstance(im, np.ndarray)):
         raise TypeError("image is not a numpy ndarray; use openCV's imread")
-    if (len(im.shape()) != 2):
+    if (len(np.shape(im)) != 2):
         raise ValueError("Shape of image is not a grayscale image or histogram")
 
-    # evaluate sigma of b squared for all values from 0 to maxCount
-    for i in range(maxCount):
-        sigma = class_variance_b_squared(im, 0, i, 255)
-        print("i={}: sigma={}".format(i, sigma))
+    # get last non-zero pixel level
+    hist = cv2.calcHist([im],[0],None,[255],[0,255])
+    # get the element pair, which contains an index and value (which is 0)
+    firstPixelIndex = np.transpose(np.nonzero(hist))[0][0]
+    lastPixelIndex = np.transpose(np.nonzero(hist))[-1][0]
+
+    # evaluate sigma of b squared for all values from the first non zero pixel
+    # level to the last non zero pixel level
+    result = np.zeros(maxCount)
+    for i in range(firstPixelIndex+1, lastPixelIndex):
+        sigma = class_variance_b_squared(im, i, maxCount)
+        result[i] = sigma
+
+    thresh = np.argmax(result)
+    if (verbose):
+        ipcv.plotHist(hist, [np.argmax(result)])
+
+    # apply threshold to image
+    binaryIm = np.ones(np.shape(im))
+    binaryIm = binaryIm*im
+    np.place(binaryIm, im<thresh, 0)
+    np.place(binaryIm, im>=thresh, 1)
+
+    return (binaryIm, thresh)
 
 
 """
