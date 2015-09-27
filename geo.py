@@ -1,4 +1,9 @@
 """
+IMPORTS
+"""
+import numpy as np
+import ipcv
+"""
 PYTHON METHOD DEFINITION
 """
 def remap(src, map1, map2, interpolation=ipcv.INTER_NEAREST, borderMode=ipcv.BORDER_CONSTANT, borderValue=0):
@@ -19,7 +24,9 @@ def remap(src, map1, map2, interpolation=ipcv.INTER_NEAREST, borderMode=ipcv.BOR
     Returns:
         the source modified to the new mappings
     """
-    pass
+
+    # first, get the max x and y value so we can build our image
+
 
 """
 PYTHON TEST HARNESS
@@ -66,7 +73,7 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
         scale (array): factors to scale image by in the x (0th) and y (1st)
 
     Returns:
-        a transformed image
+        two maps, of x values and y values
     """
     pass
 
@@ -154,13 +161,13 @@ if __name__ == '__main__':
     linesRead = 0
     f = open(gcpFilename, 'r')
     for line in f:
-    linesRead += 1
-    if linesRead > 2:
-       data = line.rstrip().split()
-       srcX.append(float(data[0]))
-       srcY.append(float(data[1]))
-       mapX.append(float(data[2]))
-       mapY.append(float(data[3]))
+        linesRead += 1
+        if linesRead > 2:
+           data = line.rstrip().split()
+           srcX.append(float(data[0]))
+           srcY.append(float(data[1]))
+           mapX.append(float(data[2]))
+           mapY.append(float(data[3]))
     f.close()
 
     startTime = time.clock()
