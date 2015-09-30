@@ -77,12 +77,16 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
         two maps, of x values and y values
     """
 
+    print("ORG SHAPE:",src.shape)
+
+    deg = np.radians(rotation)
+
     # rotation matrix (based on slides)
     rotateMatrix = np.array([
-        np.cos(np.radians(rotation)),
-        np.sin(np.radians(rotation)),
-        -np.sin(np.radians(rotation)),
-        np.cos(np.radians(rotation))
+        np.cos(deg),
+        np.sin(deg),
+        -np.sin(deg),
+        np.cos(deg)
     ])
     rotateMatrix = rotateMatrix.reshape(2,2)
 
@@ -120,19 +124,15 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
         maxX = max(maxX, x)
         maxY = max(maxY, y)
 
-    # print("minX", minX)
-    # print("minY", minY)
-    # print("maxX", maxX)
-    # print("maxY", maxY)
+    print("minX", minX)
+    print("minY", minY)
+    print("maxX", maxX)
+    print("maxY", maxY)
 
-    # we can't have non-zero indexing, so we'll shift after the fact
-    xshift = -minX
-    yshift = -minY
-
-    xwidth = maxX + xshift
-    ywidth = maxY + yshift
-    print("x:", np.ceil(xwidth))
-    print("y:", np.ceil(ywidth))
+    xwidth = maxX - minX
+    ywidth = maxY - minY
+    print("width-x:", xwidth)
+    print("width-y:", ywidth)
 
     xs = np.zeros((xwidth, ywidth))
     ys = np.zeros((xwidth, ywidth))
@@ -148,7 +148,9 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
             # print("OFFS", offs)
 
             # transform the points
-            xp, yp = np.dot(transformMatrix, offs)
+            tm = np.asmatrix(transformMatrix).I
+            offs = np.asmatrix(offs.reshape(2,1))
+            xp, yp = tm*offs
             # print("TRANS", [xp, yp])
 
             # un-offset them, and place them in the final maps
@@ -161,6 +163,7 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
             ys[row,col] = unoffY
 
 
+    print("XS shape", xs.shape)
     xs = xs.astype('float32')
     ys = ys.astype('float32')
     return (xs, ys)
@@ -182,13 +185,14 @@ if __name__ == '__main__':
     src = cv2.imread(filename)
 
     startTime = time.clock()
-    #map1, map2 = ipcv.map_rotation_scale(src, rotation=30, scale=[1.3, 0.8])
-    map1, map2 = ipcv.map_rotation_scale(src, rotation=0, scale=[2.0, 2.0])
+    map1, map2 = ipcv.map_rotation_scale(src, rotation=30, scale=[1.3, 0.8])
+    #map1, map2 = ipcv.map_rotation_scale(src, rotation=0, scale=[2.0, 2.0])
     elapsedTime = time.clock() - startTime
     print('Elapsed time (map creation) = {0} [s]'.format(elapsedTime))
 
     startTime = time.clock()
     dst = cv2.remap(src, map1, map2, cv2.INTER_NEAREST)
+    print("DST.shape", dst.shape)
     #   dst = ipcv.remap(src, map1, map2, ipcv.INTER_NEAREST)
     elapsedTime = time.clock() - startTime
     print('Elapsed time (remapping) = {0} [s]'.format(elapsedTime))
