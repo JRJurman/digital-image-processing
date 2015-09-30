@@ -88,31 +88,22 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
 
     # scale matrix (based on notes)
     scaleMatrix = np.array([
-        1/scale[0], 0,
-        0, 1/scale[1]
-    ])
-    scaleMatrix = scaleMatrix.reshape(2,2)
-
-    # max matrix (to get the edges of dst)
-    maxMatrix = np.array([
         scale[0], 0,
         0, scale[1]
     ])
-    maxMatrix = maxMatrix.reshape(2,2)
+    scaleMatrix = scaleMatrix.reshape(2,2)
 
     # transformations
     transformMatrix = np.dot(rotateMatrix, scaleMatrix)
-    edgeMatrix = np.dot(rotateMatrix, maxMatrix)
 
     print("TRANSFORM:\n", transformMatrix)
-    print("EDGE:\n", edgeMatrix)
 
     # get the size of the Destination Map
     corners = np.array([
-        [0,0],
-        [0, src.shape[1]],
-        [src.shape[0], 0],
-        [src.shape[0], src.shape[1]]
+        [-src.shape[0]/2, src.shape[1]/2],
+        [src.shape[0]/2, src.shape[1]/2],
+        [-src.shape[0]/2, -src.shape[1]/2],
+        [src.shape[0]/2, -src.shape[1]/2]
     ])
 
     # set up min and max values to compare against with
@@ -120,8 +111,10 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
     minX, minY = float('inf'), float('inf')
     maxX, maxY = float('-inf'), float('-inf')
 
+    print("CORNERS:", corners)
+
     for xyPair in corners:
-        x, y = np.dot(edgeMatrix, xyPair)
+        x, y = np.dot(transformMatrix, xyPair)
         minX = min(minX, x)
         minY = min(minY, y)
         maxX = max(maxX, x)
@@ -138,8 +131,8 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
 
     xwidth = maxX + xshift
     ywidth = maxY + yshift
-    # print("x:", np.ceil(xwidth))
-    # print("y:", np.ceil(ywidth))
+    print("x:", np.ceil(xwidth))
+    print("y:", np.ceil(ywidth))
 
     xs = np.zeros((xwidth, ywidth))
     ys = np.zeros((xwidth, ywidth))
@@ -148,20 +141,19 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
         for col in range(xs.shape[1]):
 
             # offset the values to center the rotation
-            offX = row - (xs.shape[0]/2)
-            offY = (xs.shape[1]/2) - col
+            offX = col - (xs.shape[1]/2)
+            offY = (xs.shape[0]/2) - row
 
             offs = np.array([offX, offY])
             # print("OFFS", offs)
 
             # transform the points
             xp, yp = np.dot(transformMatrix, offs)
-
             # print("TRANS", [xp, yp])
 
             # un-offset them, and place them in the final maps
-            unoffX = (xp + (src.shape[0]/2))
-            unoffY = ((src.shape[1]/2) - yp)
+            unoffX = (xp + (src.shape[1]/2))
+            unoffY = ((src.shape[0]/2) - yp)
 
             # print("UNOFFS", [unoffX, unoffY])
 
@@ -191,7 +183,7 @@ if __name__ == '__main__':
 
     startTime = time.clock()
     #map1, map2 = ipcv.map_rotation_scale(src, rotation=30, scale=[1.3, 0.8])
-    map1, map2 = ipcv.map_rotation_scale(src, rotation=0, scale=[1.0, 1.0])
+    map1, map2 = ipcv.map_rotation_scale(src, rotation=0, scale=[2.0, 2.0])
     elapsedTime = time.clock() - startTime
     print('Elapsed time (map creation) = {0} [s]'.format(elapsedTime))
 
