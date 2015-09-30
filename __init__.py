@@ -4,4 +4,6 @@ from ipcv.hist import *
 from ipcv.plot import *
 from ipcv.otsu import *
 from ipcv.constants import *
-from ipcv.geo import *
+from ipcv.map_gcp import *
+from ipcv.map_rotation_scale import *
+from ipcv.remap import *
