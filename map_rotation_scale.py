@@ -78,8 +78,8 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
     print("width-x:", xwidth)
     print("width-y:", ywidth)
 
-    xs = np.zeros((xwidth, ywidth))
-    ys = np.zeros((xwidth, ywidth))
+    xs = np.zeros((ywidth, xwidth))
+    ys = np.zeros((ywidth, xwidth))
 
     for row in range(xs.shape[0]):
         for col in range(xs.shape[1]):
