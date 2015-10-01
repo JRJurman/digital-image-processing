@@ -13,8 +13,8 @@ def map_gcp(src, map, srcX, srcY, mapX, mapY, order=1):
     Function to distort map image to fall on the coordinates of the source
 
     Args:
-        src (array): source image
-        map (array): image to distort
+        src (array): source (image to distort)
+        map (array): image to register with source
         srcX (array): list of x values for a set of points on the source image
         srcY (array): list of y values for a set of points on the source image
         mapX (array): list of x values for a set of points on the map image
@@ -22,9 +22,55 @@ def map_gcp(src, map, srcX, srcY, mapX, mapY, order=1):
         order (optional[int]): order of polynomial to do mapping
 
     Returns:
-        An image of the map with the points placed in the coordinates of the src
+        two maps, of x values and y values
+
+    Raises:
+        ValueError if order is above 2
     """
-    pass
+
+    if (order > 2):
+        raise ValueError("order parameter should be less than 1")
+
+    # get the exponent terms for x and y
+    nterms = (order+1)**2
+    x = np.arange(nterms)
+    y = [[0],[1]]
+
+    mesh, grab = np.meshgrid(x, y)
+
+    xExp = np.floor( mesh[0] % (order + 1) )
+    yExp = np.floor(mesh[1] / (order+1))
+
+    # build design matrix from map points
+    X = np.zeros((len(mapX), nterms))
+
+    for ind in range(len(mapX)):
+        for term in range(nterms):
+            X[ind, term] = (mapX[ind]**xExp[term])*(mapY[ind]**yExp[term])
+
+    # build coefficients for C
+    # now we need both src and map
+    Y = np.asmatrix([srcX, srcY]).T
+    Xm = np.asmatrix(X)
+
+    # from the notes
+    Xsq = (Xm.T * Xm)
+    C = Xsq.I * Xm.T * Y
+    # this will be a0, a1, a2, etc...
+
+    # building the final maps before we return
+    xs, ys = np.meshgrid(np.arange(map.shape[0]), np.arange(map.shape[1]))
+
+    # doing our transform
+    Xp, Yp = 0, 0
+    for term in range(nterms):
+        Xp += C[term, 0] * (xs**xExp[term]) * (ys**yExp[term])
+        Yp += C[term, 1] * (xs**xExp[term]) * (ys**yExp[term])
+
+    Xp = Xp.astype('float32')
+    Yp = Yp.astype('float32')
+
+    return Xp, Yp
 
 """
 PYTHON TEST HARNESS
@@ -37,7 +83,7 @@ if __name__ == '__main__':
     import time
 
     home = os.path.expanduser('~')
-    imgFilename = home + os.path.sep + \
+    srcFilename = home + os.path.sep + \
                'src/python/examples/data/registration/image.tif'
     mapFilename = home + os.path.sep + \
                'src/python/examples/data/registration/map.tif'
@@ -63,7 +109,8 @@ if __name__ == '__main__':
     f.close()
 
     startTime = time.clock()
-    map1, map2 = ipcv.map_gcp(src, map, srcX, srcY, mapX, mapY, order=2)
+    # map1, map2 = ipcv.map_gcp(src, map, srcX, srcY, mapX, mapY, order=2)
+    map1, map2 = ipcv.map_gcp(src, map, srcX, srcY, mapX, mapY, order=1)
     elapsedTime = time.clock() - startTime
     print('Elapsed time (map creation) = {0} [s]'.format(elapsedTime))
 
