@@ -109,8 +109,7 @@ if __name__ == '__main__':
     f.close()
 
     startTime = time.clock()
-    # map1, map2 = ipcv.map_gcp(src, map, srcX, srcY, mapX, mapY, order=2)
-    map1, map2 = ipcv.map_gcp(src, map, srcX, srcY, mapX, mapY, order=1)
+    map1, map2 = ipcv.map_gcp(src, map, srcX, srcY, mapX, mapY, order=2)
     elapsedTime = time.clock() - startTime
     print('Elapsed time (map creation) = {0} [s]'.format(elapsedTime))
 
