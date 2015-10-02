@@ -29,7 +29,7 @@ def map_gcp(src, map, srcX, srcY, mapX, mapY, order=1):
     """
 
     if (order > 2):
-        raise ValueError("order parameter should be less than 1")
+        raise ValueError("order parameter should be less than 2")
 
     # get the exponent terms for x and y
     nterms = (order+1)**2

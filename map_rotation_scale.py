@@ -21,8 +21,6 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
         two maps, of x values and y values
     """
 
-    print("ORG SHAPE:",src.shape)
-
     deg = np.radians(rotation)
 
     # rotation matrix (based on slides)
@@ -44,8 +42,6 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
     # transformations
     transformMatrix = np.dot(rotateMatrix, scaleMatrix)
 
-    print("TRANSFORM:\n", transformMatrix)
-
     # get the size of the Destination Map
     corners = np.array([
         [-src.shape[0]/2, src.shape[1]/2],
@@ -59,8 +55,6 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
     minX, minY = float('inf'), float('inf')
     maxX, maxY = float('-inf'), float('-inf')
 
-    print("CORNERS:", corners)
-
     for xyPair in corners:
         x, y = np.dot(transformMatrix, xyPair)
         minX = min(minX, x)
@@ -68,19 +62,27 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
         maxX = max(maxX, x)
         maxY = max(maxY, y)
 
-    print("minX", minX)
-    print("minY", minY)
-    print("maxX", maxX)
-    print("maxY", maxY)
-
     xwidth = maxX - minX
     ywidth = maxY - minY
-    print("width-x:", xwidth)
-    print("width-y:", ywidth)
 
     xs = np.zeros((ywidth, xwidth))
     ys = np.zeros((ywidth, xwidth))
 
+    """
+    xs = np.meshgrid(xwidth)
+    ys = np.meshgrid(ywidth)
+
+    # offset values to center rotation
+    xs = xs - (xwidth/2)
+    ys = (ywidth/2) - ys
+
+    tm = np.asmatrix(transformMatrix).I
+    xs, ys = tm*(np.array([xs, ys]).reshape(2,1))
+
+    xs = xs + (src.shape[1]/2)
+    ys = (src.shape[0]/2) - ys
+    """
+    
     for row in range(xs.shape[0]):
         for col in range(xs.shape[1]):
 
@@ -89,25 +91,19 @@ def map_rotation_scale(src, rotation=0, scale=[1, 1]):
             offY = (xs.shape[0]/2) - row
 
             offs = np.array([offX, offY])
-            # print("OFFS", offs)
 
             # transform the points
             tm = np.asmatrix(transformMatrix).I
             offs = np.asmatrix(offs.reshape(2,1))
             xp, yp = tm*offs
-            # print("TRANS", [xp, yp])
 
             # un-offset them, and place them in the final maps
             unoffX = (xp + (src.shape[1]/2))
             unoffY = ((src.shape[0]/2) - yp)
 
-            # print("UNOFFS", [unoffX, unoffY])
-
             xs[row,col] = unoffX
             ys[row,col] = unoffY
 
-
-    print("XS shape", xs.shape)
     xs = xs.astype('float32')
     ys = ys.astype('float32')
     return (xs, ys)
@@ -136,7 +132,6 @@ if __name__ == '__main__':
 
     startTime = time.clock()
     dst = cv2.remap(src, map1, map2, cv2.INTER_NEAREST)
-    print("DST.shape", dst.shape)
     #   dst = ipcv.remap(src, map1, map2, ipcv.INTER_NEAREST)
     elapsedTime = time.clock() - startTime
     print('Elapsed time (remapping) = {0} [s]'.format(elapsedTime))

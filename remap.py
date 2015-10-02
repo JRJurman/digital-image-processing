@@ -25,8 +25,44 @@ def remap(src, map1, map2, interpolation=ipcv.INTER_NEAREST, borderMode=ipcv.BOR
 
     Returns:
         the source modified to the new mappings
+
+    Raises:
+        ValueError: Only supports border constant as of now
     """
-    pass
+
+    if (len(src.shape) == 3):
+        # color image, so we need to add a third dimension
+        dst = np.zeros((map1.shape[0], map1.shape[1], src.shape[2]))
+    else:
+        dst = np.zeros((map1.shape[0], map1.shape[1], 1))
+    if (borderMode==ipcv.BORDER_CONSTANT):
+        dst.fill(borderValue)
+    else:
+        raise ValueError("Only supports border mode of BORDER_CONSTANT")
+
+    if (interpolation == ipcv.INTER_NEAREST):
+        mmap1 = np.ma.masked_outside(map1, 0, src.shape[0])
+        mmap1 = np.around(mmap1)
+        mmap1 = np.ma.array(mmap1, dtype=src.dtype)
+
+        mmap2 = np.ma.masked_outside(map2, 0, src.shape[1])
+        mmap2 = np.around(mmap2)
+        mmap2 = np.ma.array(mmap2, dtype=src.dtype)
+
+        # for some reason, this mask is not ignoring the values...
+        mmap1 = mmap1.filled(False)
+        mmap2 = mmap2.filled(False)
+
+    else:
+        raise ValueError("Only supports Nearest-neighbor interpolation")
+
+    dst = src[mmap1, mmap2, :]
+    # dst = np.ma.array(dst, src.dtype)
+
+    return dst
+
+
+
 
 """
 PYTHON TEST HARNESS

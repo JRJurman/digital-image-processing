@@ -1,5 +1,6 @@
 # required only for plotting
 import matplotlib.pyplot as plt
+import cv2
 
 def plotHist(histogram, verts=[]):
     """
