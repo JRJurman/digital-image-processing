@@ -5,52 +5,68 @@ import numpy as np
 import cv2
 import ipcv
 
-def w(im, i, maxCount=255):
+def w(im, k, maxCount=255):
     """
     Function to evaluate probability of class occurance
 
     Args:
         im (array): image to convert to histogram and evaluate
-        i (int): pixel level evaluating class occurance probability
+        k (int): pixel level evaluating class occurance probability
         maxCount (option[int]): total number of pixel levels possible
             shortcut for total class variance squared
 
     Returns:
-        probability of class occurance at i
+        probability of class occurance at k
     """
 
     # get histogram of probabilities
-    hist = cv2.calcHist([im],[0],None,[255],[0,255])
+    hist = cv2.calcHist([im],[0],None,[255+1],[0,255+1])
     histProbs = hist / np.cumprod(np.shape(im))[-1]
 
     # get the cummulative sum of all elements in the slice
-    return np.cumsum(histProbs)[i]
+    return np.cumsum(histProbs)[k]
 
-def u(im, i):
+def w0(im, k):
+    return w(im, k)
+
+def w1(im, k):
+    return 1 - w(im, k)
+
+def u(im, k):
     """
     Function to evaulate the class mean levels
 
     Args:
         im (array): image to convert to histogram and evaluate
-        i (int): pixel level to evaluating mean levels
+        k (int): pixel level to evaluating mean levels
 
     Returns:
-        class mean level for i
+        class mean level for k
     """
 
     # get histogram of probabilities
-    hist = cv2.calcHist([im],[0],None,[255],[0,255])
+    hist = cv2.calcHist([im],[0],None,[255+1],[0,255+1])
     histProbs = hist / np.cumprod(np.shape(im))[-1]
 
     # build array of indicies
-    indHist = np.array(hist.max())
+    indHist = np.arange(256)
 
     histMean = indHist * histProbs
 
-    result = np.cumsum(histMean)[i] * w(im, i)
+    ipcv.plotHist(histProbs)
+    ipcv.plotHist(indHist)
+    ipcv.plotHist(histMean)
+
+    result = np.cumsum(histMean)[k]
     return result
 
-def class_variance_b_squared(im, i, maxCount=255):
+def u0(im, k):
+    return u(im, k)/w(im, k)
+
+def u1(im, k):
+    return ( u(im, 255) - u(im, k) )/( 1 - w(im, k) )
+
+def class_variance_b_squared(im, k, maxCount=255):
     """
     Function to get the class variance b squared, as described in otsu's paper
 
@@ -64,12 +80,13 @@ def class_variance_b_squared(im, i, maxCount=255):
         class variance b (squared) for the pixel level
     """
 
-    wk = w(im, i, maxCount)
-
-    numerator = ((u(im, maxCount-1) * wk) - u(im, i))**2
-    denominator = wk * (1 - wk)
-
-    return numerator/denominator
+    print("======= {} ======".format(k))
+    print("w0", w0(im,k))
+    print("w1", w1(im,k))
+    print("u", u(im, k))
+    print("u0", u0(im,k))
+    print("u1", u1(im,k))
+    return w0(im, k) * w1(im, k) * ( (u1(im, k) - u0(im, k))**2 )
 
 def otsu_threshold(im, maxCount=255, verbose=False):
     """
@@ -109,6 +126,7 @@ def otsu_threshold(im, maxCount=255, verbose=False):
         sigma = class_variance_b_squared(im, i, maxCount)
         result[i] = sigma
 
+    ipcv.plotHist(result)
     thresh = np.argmax(result)
     if (verbose):
         ipcv.plotHist(hist, [np.argmax(result)])
