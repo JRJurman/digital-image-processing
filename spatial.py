@@ -25,7 +25,11 @@ def filter2D(src, dstDepth, kernel, delta=0, maxCount=255):
 
     # average kernel into percentages
     kernel = kernel.astype(np.float64)
-    kernel /= kernel.sum()
+    if (np.all(kernel > 0)):
+        # blur image
+        kernel /= kernel.sum()
+    else:
+        kernel /= np.abs(kernel).max()
     print(kernel)
 
     # generate rolled images
