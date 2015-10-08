@@ -7,3 +7,4 @@ from ipcv.constants import *
 from ipcv.map_gcp import *
 from ipcv.map_rotation_scale import *
 from ipcv.remap import *
+from ipcv.spatial import *
