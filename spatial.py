@@ -30,20 +30,33 @@ def filter2D(src, dstDepth, kernel, delta=0, maxCount=255):
         kernel /= kernel.sum()
     else:
         kernel /= np.abs(kernel).max()
-    print(kernel)
 
     # generate rolled images
     imageArray = []
+    kernelOff = np.array(np.cumprod(kernel.shape))
     for row in range(kernel.shape[0]):
         for col in range(kernel.shape[1]):
-            copy = np.copy(src).astype(np.float64)
-            # manipulate each copy image
-            copy *= kernel[row][col]
-            # roll the image
-            copy = np.roll(copy, row-center[0], 0)
-            copy = np.roll(copy, col-center[1], 1)
-            # push onto our array
-            imageArray.append(copy)
+            p = {}
+            p['row'] = row
+            p['col'] = col
+            kernelOff[row+col] = p
+
+    def imageShift(koff):
+        print(koff)
+        row = koff['row']
+        col = koff['col']
+        copy = np.copy(src).astype(np.float64)
+        # manipulate each copy image
+        copy *= kernel[row][col]
+        # roll the image
+        copy = np.roll(copy, row-center[0], 0)
+        copy = np.roll(copy, col-center[1], 1)
+        # push onto our array
+        print(copy)
+        return copy
+
+    vShift = np.vectorize(imageShift, np.ndarray)
+    print( vShift(kernelOff) )
 
     # add them together
     resultImage = np.zeros(src.shape)
@@ -64,20 +77,20 @@ if __name__ == '__main__':
     import numpy
 
     home = os.path.expanduser('~')
-    filename = home + os.path.sep + 'src/python/examples/data/redhat.ppm'
-    filename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
     filename = home + os.path.sep + 'src/python/examples/data/checkerboard.tif'
     filename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
+    filename = home + os.path.sep + 'src/python/examples/data/crowd.jpg'
+    filename = home + os.path.sep + 'src/python/examples/data/redhat.ppm'
 
     src = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
 
     dstDepth = ipcv.IPCV_8U
     # kernel = numpy.asarray([[-1,-1,-1],[-1,9,-1],[-1,-1,-1]])
     # offset = 0
-    kernel = numpy.asarray([[-1,-1,-1],[-1,8,-1],[-1,-1,-1]])
-    offset = 128
-    # kernel = numpy.ones((15,15))
-    # offset = 0
+    # kernel = numpy.asarray([[-1,-1,-1],[-1,8,-1],[-1,-1,-1]])
+    # offset = 128
+    kernel = numpy.ones((15,15))
+    offset = 0
     # kernel = numpy.asarray([[1,1,1],[1,1,1],[1,1,1]])
     # offset = 0
 
