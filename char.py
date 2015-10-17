@@ -1,6 +1,8 @@
 """
 PYTHON METHOD DEFINITION
+by Jesse Jurman (jrj2703)
 """
+from operator import itemgetter
 import numpy as np
 import cv2
 import ipcv
@@ -45,7 +47,8 @@ def character_recognition(src, templates, threshold, filterType='spatial', verbo
         verbose (bool): plot character maps
 
     Returns:
-        a string (or list of characters)
+        a list of the indicies for the templates, in the order that they appear
+            on the source image
         a histogram (size of the array templates)
 
     Raises:
@@ -54,7 +57,11 @@ def character_recognition(src, templates, threshold, filterType='spatial', verbo
 
     isrc = invertImage(src)
     results = []
-    text = ""
+    text = []
+
+    # text map is a mapping of x,y coords to letters
+    # this will be sorted to retrieve the final text
+    textMap = {}
 
 
     if (filterType == 'spatial'):
@@ -75,7 +82,8 @@ def character_recognition(src, templates, threshold, filterType='spatial', verbo
 
             # normalize template
             icharacter = icharacter.astype(np.float64)
-            icharacter /= icharacter.sum()
+            if (icharacter.sum() != 0):
+                icharacter /= icharacter.sum()
 
             if (verbose):
                 cv2.namedWindow('icharacter', cv2.WINDOW_AUTOSIZE)
@@ -100,7 +108,17 @@ def character_recognition(src, templates, threshold, filterType='spatial', verbo
                 ipcv.flush()
 
             results.append((pointMatch/255).sum())
-        text = ""
+
+            coords = np.where(pointMatch >= threshold)
+            for coordInd in range(len(coords[0])):
+                coordTuple = (coords[0][coordInd], coords[1][coordInd])
+
+                # we don't know what actual letter we're dealing with,
+                # but we kinda know the index using the size of the results list
+
+                # this will totally overwrite letters that sit in the same coord
+                textMap[coordTuple] = len(results)-1
+
 
     elif (filterType == 'matched'):
 
@@ -133,16 +151,7 @@ def character_recognition(src, templates, threshold, filterType='spatial', verbo
             # invert source
             isrc = invertImage(src)
 
-            # found variable, which lets us jump once we found where these
-            # characters start
-            foundStart = False
-
             row = 0
-            # while (row+s[0] < src.shape[0]-s[0]):
-            #     row += (s[0] if (foundStart) else 1)
-            #     col = 0
-            #     while (col+s[1] < src.shape[1]-s[1]):
-            #         col += (s[1] if (foundStart) else 1)
             for row in range(src.shape[0]-s[0]):
                 for col in range(src.shape[1]-s[1]):
 
@@ -156,9 +165,6 @@ def character_recognition(src, templates, threshold, filterType='spatial', verbo
                                             np.linalg.norm(wideCut))
                     if (denominator != 0):
                         resImage[row][col] = numerator/denominator
-
-                    if (resImage[row][col] >= threshold):
-                        foundStart = True
 
                 loading.showBar(load/len(templates))
 
@@ -179,8 +185,25 @@ def character_recognition(src, templates, threshold, filterType='spatial', verbo
 
             results.append((finImage/255).sum())
 
+            coords = np.where(finImage >= threshold)
+            for coordInd in range(len(coords[0])):
+                coordTuple = (coords[0][coordInd], coords[1][coordInd])
+
+                # we don't know what actual letter we're dealing with,
+                # but we kinda know the index using the size of the results list
+
+                # this will totally overwrite letters that sit in the same coord
+                textMap[coordTuple] = len(results)-1
+
     else:
         raise ValueError("only filter types supported are spatial and matched")
+
+    # sort the text by it's x and y value
+    # print("TEXTMAP.KEYS()", textMap.keys())
+    sortedMapKeys = sorted(textMap.keys(), key=itemgetter(0,1))
+    # print("SORTEDMAPKEYS",sortedMapKeys)
+    for smk in sortedMapKeys:
+        text.append(textMap[smk])
 
     return text, results
 """
@@ -213,20 +236,55 @@ if __name__ == '__main__':
             currentCharacter = cv2.imread(root + '/' + filename,
                                                         cv2.IMREAD_UNCHANGED)
             characterImages.append(currentCharacter)
+
+    """
+    # append the space character
+    spaceCharacter = characterImages[0].copy()
+    spaceCharacter.fill(0)
+    characterNames.append(" ")
+    characterImages.append(spaceCharacter)
+    """
+
     characterImages = numpy.asarray(characterImages)
 
     # Define the filter threshold
     threshold = 1.0
+
+    # run the spatial filter
     text, histogram = character_recognition(document, characterImages, threshold, filterType='spatial', verbose=False)
+
+    # display the histogram in the console
     for n in range(len(characterNames)):
         print(str(characterNames[n]) +": "+ str(histogram[n]))
 
+    # plot the histogram
     ipcv.plotLetters(histogram, numpy.array(characterNames))
+
+    # build and show the final string
+    realText = []
+    for index in text:
+        realText.append(characterNames[index])
+
+    realTextString = "".join(realText)
+    print("TEXT", realTextString)
 
     # Define the filter threshold
     threshold = 0.97
+
+    # run the matched filter
     text, histogram = character_recognition(document, characterImages, threshold, filterType='matched', verbose=False)
+
+    # display the histogram in the console
     for n in range(len(characterNames)):
         print(str(characterNames[n]) +": "+ str(histogram[n]))
 
+    # plot the histogram
     ipcv.plotLetters(histogram, numpy.array(characterNames))
+
+    # build and show the final string
+    realText = []
+    for index in text:
+        realText.append(characterNames[index])
+
+    realTextString = "".join(realText)
+    print("TEXT", realTextString)
