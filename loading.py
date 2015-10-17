@@ -12,4 +12,5 @@ class Bar:
         fillCount = floor(self.width*progress)
         self.symCount += 1
         sym = symbols[self.symCount%len(symbols)]
-        print("[" + ("="*fillCount) + sym + (" "*((self.width-1)-fillCount)) + "]\r", end="")
+
+        print("[" + ("="*(fillCount-1)) + sym + (" "*((self.width)-fillCount)) + "]\r", end="")

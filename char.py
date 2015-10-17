@@ -137,8 +137,15 @@ def character_recognition(src, templates, threshold, filterType='spatial', verbo
             # characters start
             foundStart = False
 
+            row = 0
+            # while (row+s[0] < src.shape[0]-s[0]):
+            #     row += (s[0] if (foundStart) else 1)
+            #     col = 0
+            #     while (col+s[1] < src.shape[1]-s[1]):
+            #         col += (s[1] if (foundStart) else 1)
             for row in range(src.shape[0]-s[0]):
                 for col in range(src.shape[1]-s[1]):
+
                     # cut out a portion of the image, based on the row and column
                     cut = isrc[row:row+s[0], col:col+s[1]]
                     wideCut = cut.flatten()
@@ -217,7 +224,7 @@ if __name__ == '__main__':
     ipcv.plotLetters(histogram, numpy.array(characterNames))
 
     # Define the filter threshold
-    threshold = 0.98
+    threshold = 0.97
     text, histogram = character_recognition(document, characterImages, threshold, filterType='matched', verbose=False)
     for n in range(len(characterNames)):
         print(str(characterNames[n]) +": "+ str(histogram[n]))
