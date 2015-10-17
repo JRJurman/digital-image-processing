@@ -103,7 +103,75 @@ def character_recognition(src, templates, threshold, filterType='spatial', verbo
         text = ""
 
     elif (filterType == 'matched'):
-        pass
+
+        # you can set the loading bar width here
+        # make sure it's smaller than your window, otherwise it'll
+        # print a LOT of newlines
+        loadingBarWidth = 50
+        loading = ipcv.Bar(loadingBarWidth)
+        load = 0
+        # iterate through our templates
+        for character in templates:
+
+            # update loading bar
+            load += 1
+            loading.showBar(load/len(templates))
+
+            # image of matches
+            resImage = np.zeros(src.shape)
+
+            # size of 2d slices
+            s = templates[0].shape
+            arrayWidth = s[0]*s[1]
+
+            # invert character
+            icharacter = invertImage(character)
+
+            # flatten template
+            rcharacter = icharacter.flatten()
+
+            # invert source
+            isrc = invertImage(src)
+
+            # found variable, which lets us jump once we found where these
+            # characters start
+            foundStart = False
+
+            for row in range(src.shape[0]-s[0]):
+                for col in range(src.shape[1]-s[1]):
+                    # cut out a portion of the image, based on the row and column
+                    cut = isrc[row:row+s[0], col:col+s[1]]
+                    wideCut = cut.flatten()
+
+                    # manipulate the character
+                    numerator = np.vdot(rcharacter, wideCut)
+                    denominator = np.vdot(np.linalg.norm(rcharacter),
+                                            np.linalg.norm(wideCut))
+                    if (denominator != 0):
+                        resImage[row][col] = numerator/denominator
+
+                    if (resImage[row][col] >= threshold):
+                        foundStart = True
+
+                loading.showBar(load/len(templates))
+
+
+            if (verbose):
+                cv2.namedWindow('resImage', cv2.WINDOW_AUTOSIZE)
+                cv2.imshow('resImage', resImage)
+
+            finImage = np.where(resImage >= threshold, 255, 0)
+            finImage = np.array(finImage, src.dtype)
+
+            if (verbose):
+                cv2.namedWindow('finImage', cv2.WINDOW_AUTOSIZE)
+                cv2.imshow('finImage', finImage)
+
+            if (verbose):
+                ipcv.flush()
+
+            results.append((finImage/255).sum())
+
     else:
         raise ValueError("only filter types supported are spatial and matched")
 
@@ -142,16 +210,16 @@ if __name__ == '__main__':
 
     # Define the filter threshold
     threshold = 1.0
-    text, histogram = character_recognition(document, characterImages, threshold, filterType='spatial')
+    text, histogram = character_recognition(document, characterImages, threshold, filterType='spatial', verbose=False)
     for n in range(len(characterNames)):
         print(str(characterNames[n]) +": "+ str(histogram[n]))
 
     ipcv.plotLetters(histogram, numpy.array(characterNames))
-    text, histogram = character_recognition(document, characterImages, threshold, filterType='matched')
 
-    """
-    # Display the results to the user
-    .
-    .
-    .
-    """
+    # Define the filter threshold
+    threshold = 0.98
+    text, histogram = character_recognition(document, characterImages, threshold, filterType='matched', verbose=False)
+    for n in range(len(characterNames)):
+        print(str(characterNames[n]) +": "+ str(histogram[n]))
+
+    ipcv.plotLetters(histogram, numpy.array(characterNames))

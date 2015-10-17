@@ -9,3 +9,4 @@ from ipcv.map_rotation_scale import *
 from ipcv.remap import *
 from ipcv.spatial import *
 from ipcv.char import *
+from ipcv.loading import *
