@@ -118,6 +118,7 @@ if __name__ == '__main__':
     import numpy
     import os
     import os.path
+    import ipcv
 
     home = os.path.expanduser('~')
     baseDirectory = home + os.path.sep + 'src/python/examples/data'
@@ -141,18 +142,11 @@ if __name__ == '__main__':
 
     # Define the filter threshold
     threshold = 1.0
-    # define variables for loop
     text, histogram = character_recognition(document, characterImages, threshold, filterType='spatial')
     for n in range(len(characterNames)):
         print(str(characterNames[n]) +": "+ str(histogram[n]))
 
-    """
-    # Display the results to the user
-    .
-    .
-    .
-    """
-
+    ipcv.plotLetters(histogram, numpy.array(characterNames))
     text, histogram = character_recognition(document, characterImages, threshold, filterType='matched')
 
     """
