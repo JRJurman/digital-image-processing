@@ -266,7 +266,7 @@ if __name__ == '__main__':
         realText.append(characterNames[index])
 
     realTextString = "".join(realText)
-    print("TEXT", realTextString)
+    print("TEXT:\n", realTextString)
 
     # Define the filter threshold
     threshold = 0.97
@@ -287,4 +287,4 @@ if __name__ == '__main__':
         realText.append(characterNames[index])
 
     realTextString = "".join(realText)
-    print("TEXT", realTextString)
+    print("TEXT:\n", realTextString)
