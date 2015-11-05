@@ -62,16 +62,19 @@ def fast(src, differenceThreshold=50, contiguousThreshold=12, nonMaximalSuppress
     result = np.zeros(src.shape)
     for a in range(src.shape[0]):
         for b in range(src.shape[1]):
+            # set the center pixel at a, b
             center = src[a][b]
+
             # get the row of pixels
             radius =  npSrcImages[:,a,b]
+
             # double the row (so that we don't have to roll over it)
             # this is a cs trick for finding if a word is a shift of another word
             # ( for example, you can shift a word, like 'example', and append it to
             # itself: shift='ampleex' -> 'ampleexampleex' )
             doubleRadius = np.array([radius,radius]).flatten()
 
-            # get all the brighter than pixels (using where)
+            # get all the brighter and darker than pixels (using where)
             brightRadius = np.where(doubleRadius>(center+differenceThreshold), 1, 0)
             darkRadius = np.where(doubleRadius<(center-differenceThreshold), 1, 0)
 
@@ -79,17 +82,43 @@ def fast(src, differenceThreshold=50, contiguousThreshold=12, nonMaximalSuppress
             brightSplit = np.split(brightRadius, np.where(brightRadius==0)[0])
             darkSplit = np.split(darkRadius, np.where(darkRadius==0)[0])
 
-            # determine if contiguousThreshold exists
+            # determine if array of length >= contiguousThreshold exists
             brightCornerMax = np.array([len(e) for e in brightSplit]).max()
             darkCornerMax = np.array([len(e) for e in darkSplit]).max()
 
-            brightCorner = brightCornerMax > contiguousThreshold
-            darkCorner = darkCornerMax > contiguousThreshold
+            brightCorner = brightCornerMax >= contiguousThreshold
+            darkCorner = darkCornerMax >= contiguousThreshold
 
-            if (brightCorner or darkCorner):
-                result[a][b] = 1
+            if (brightCorner):
+                result[a][b] = brightCornerMax
+            elif (darkCorner):
+                result[a][b] = darkCornerMax
 
-    return result
+    if (nonMaximalSuppression):
+        for a in range(1, src.shape[0]-1):
+            for b in range(1, src.shape[1]-1):
+
+                # set the center pixel at a, b
+                center = result[a][b]
+
+                # get the neighbor of pixels
+                neighbors = np.array([
+                    result[a-1][b-1],
+                    result[a-1][b],
+                    result[a-1][b+1],
+                    result[a][b-1],
+                    result[a][b+1],
+                    result[a+1][b-1],
+                    result[a+1][b],
+                    result[a+1][b+1]
+                ])
+
+                # determine the largest canidant for a corner
+                maxNeighbor = neighbors.max()
+                if center < maxNeighbor:
+                    result[a][b] = 0
+
+    return result >= 1
 
 """
 PYTHON TEST HARNESS
