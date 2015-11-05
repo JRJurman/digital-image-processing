@@ -82,9 +82,9 @@ if __name__ == '__main__':
     import numpy
 
     home = os.path.expanduser('~')
+    filename = home + os.path.sep + 'src/python/examples/data/checkerboard.tif'
     filename = home + os.path.sep + \
             'src/python/examples/data/sparse_checkerboard.tif'
-    filename = home + os.path.sep + 'src/python/examples/data/checkerboard.tif'
 
     src = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
 
