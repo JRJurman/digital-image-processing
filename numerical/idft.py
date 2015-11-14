@@ -2,18 +2,20 @@
 PYTHON METHOD DEFINITION
 by Jesse Jurman (jrj2703)
 """
+
 import numerical
+
 def idft(f, scale=True):
     """
     Function to evaluate the inverse of the dft for an array.
 
     Args:
-        f (ndarray): array to calculate the dft of
+        f (1d-array): array to calculate the dft of
         scale (optional[boolean]): scales the result by dividing it by the
                                     number of array elements
 
     Returns:
-        Array of fourier transformation
+        Array of the inverse fourier transformation
     """
 
     def swap(f):
@@ -26,7 +28,8 @@ def idft(f, scale=True):
     scaleFactor = 1
     if (scale):
         scaleFactor = (1/M)
-    transform = swap(numerical.dft(swap(f)))/scale
+
+    transform = swap(numerical.dft(swap(f)))/scaleFactor
 
     return transform
 """

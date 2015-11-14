@@ -2,6 +2,7 @@
 PYTHON METHOD DEFINITION
 by Jesse Jurman (jrj2703)
 """
+
 import numpy as np
 
 def dft(f, scale=True):
@@ -9,13 +10,14 @@ def dft(f, scale=True):
     Function to evaluate the dft of an array.
 
     Args:
-        f (ndarray): array to calculate the dft of
+        f (1d-array): array to calculate the dft of
         scale (optional[boolean]): scales the result by dividing it by the
                                     number of array elements
 
     Returns:
         Array of fourier transformation
     """
+
     M = f.shape[0]
     u = np.arange(M)
     rotU = u.reshape(u.shape[0], 1)
