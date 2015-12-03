@@ -14,4 +14,5 @@ from ipcv.harris import *
 # from ipcv.fast import *               # still working on that one
 from ipcv.filter_distance import *
 from ipcv.filter_lowpass import *
+from ipcv.filter_highpass import *
 from ipcv.frequency_filter import *
