@@ -8,7 +8,7 @@ import numerical
 
 def dft2(f, scale=True):
     """
-    Function to evaluate the inverse of the dft for a 2D array.
+    Function to evaluate the dft for a 2D array.
 
     Args:
         f (2d-array): array to calculate the 2 dimensional dft of
