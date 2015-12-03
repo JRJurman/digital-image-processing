@@ -55,45 +55,62 @@ def fast(src, differenceThreshold=50, contiguousThreshold=12, nonMaximalSuppress
         offsetSrc = np.roll(offsetSrc, radiusOffsets[i][1], axis=1)
         srcImages.append(offsetSrc)
 
+    # double the row (so that we don't have to roll over it)
+    # this is a cs trick for finding if a word is a shift of another word
+    # ( for example, you can shift a word, like 'example', and append it to
+    # itself: shift='ampleex' -> 'ampleexampleex' )
+    for image in srcImages[:]:
+        srcImages.append(image)
+
     # turn our list of images into a 3D cube of pixels
     npSrcImages = np.array(srcImages)
 
-    # result image that we'll put ranks into
-    result = np.zeros(src.shape)
-    for a in range(src.shape[0]):
-        for b in range(src.shape[1]):
-            # set the center pixel at a, b
-            center = src[a][b]
+    # determine where a bright radius or dark radius exists
+    brightRadiusImages = np.where(npSrcImages>(src+differenceThreshold), 1, 0)
+    darkRadiusImages = np.where(npSrcImages<(src-differenceThreshold), 1, 0)
 
-            # get the row of pixels
-            radius =  npSrcImages[:,a,b]
+    # swap the axes of the images so that we are looking at rows of neighbors
+    brightRadiusRows = brightRadiusImages.swapaxes(0, 2)
+    darkRadiusRows = darkRadiusImages.swapaxes(0, 2)
 
-            # double the row (so that we don't have to roll over it)
-            # this is a cs trick for finding if a word is a shift of another word
-            # ( for example, you can shift a word, like 'example', and append it to
-            # itself: shift='ampleex' -> 'ampleexampleex' )
-            doubleRadius = np.array([radius,radius]).flatten()
+    # build every permutation of a possible corner
+    # i.e. 1 1 0 0
+    #      0 1 1 0
+    #      0 0 1 1
+    # we have to build this array with a for loop
+    conChecks = []
+    for i in range(len(radiusOffsets)):
+        conChecks.append(np.array(
+            [1]*contiguousThreshold + [0]*(contiguousThreshold-(2*len(radiusOffsets)))
+        ).roll(i))
 
-            # get all the brighter and darker than pixels (using where)
-            brightRadius = np.where(doubleRadius>(center+differenceThreshold), 1, 0)
-            darkRadius = np.where(doubleRadius<(center-differenceThreshold), 1, 0)
+    # turn it into an np array of arrays
+    npConChecks = np.array(conChecks)
 
-            # split the array by 0s so we can find the 1 clusters
-            brightSplit = np.split(brightRadius, np.where(brightRadius==0)[0])
-            darkSplit = np.split(darkRadius, np.where(darkRadius==0)[0])
+    """
+    # do logical ands of the rows against the table
+    # get the sum of true values for those logical ands
+    # and get the max value out of those values
+    #  row    | table (conCheck) | Logical And | sum | max
+    #         |  1 1 0 0         | F T F F     | 1   |
+    # 0 1 1 0 |  0 1 1 0         | F T T F     | 2   |  2
+    #         |  0 0 1 1         | F F T F     | 1   |
 
-            # determine if array of length >= contiguousThreshold exists
-            brightCornerMax = np.array([len(e) for e in brightSplit]).max()
-            darkCornerMax = np.array([len(e) for e in darkSplit]).max()
+    np.sum(np.logical_and(brightRadiusRows, npConChecks), axis=1).max()
+    """
 
-            brightCorner = brightCornerMax >= contiguousThreshold
-            darkCorner = darkCornerMax >= contiguousThreshold
+    # we check sections of the rows
+    for i in range(len(npConChecks)):
+        np.max(
+            np.sum(
+                np.logical_and(
+                    brightRadiusRows, npConChecks[i]),
+                axis=2) # for sum
+            axis=1) # for max
 
-            if (brightCorner):
-                result[a][b] = brightCornerMax
-            elif (darkCorner):
-                result[a][b] = darkCornerMax
 
+
+    """
     if (nonMaximalSuppression):
         for a in range(1, src.shape[0]-1):
             for b in range(1, src.shape[1]-1):
@@ -119,6 +136,7 @@ def fast(src, differenceThreshold=50, contiguousThreshold=12, nonMaximalSuppress
                     result[a][b] = 0
 
     return result >= 1
+    """
 
 """
 PYTHON TEST HARNESS

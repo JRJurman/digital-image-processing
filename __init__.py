@@ -11,4 +11,7 @@ from ipcv.spatial import *
 from ipcv.char import *
 from ipcv.loading import *
 from ipcv.harris import *
-from ipcv.fast import *
+# from ipcv.fast import *               # still working on that one
+from ipcv.filter_distance import *
+from ipcv.filter_lowpass import *
+from ipcv.frequency_filter import *
