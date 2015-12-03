@@ -50,14 +50,15 @@ if __name__ == '__main__':
     import time
 
     home = os.path.expanduser('~')
-    filename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
     filename = home + os.path.sep + 'src/python/examples/data/giza.jpg'
     filename = home + os.path.sep + 'src/python/examples/data/checkerboard.tif'
+    filename = home + os.path.sep + 'src/python/examples/data/lenna.tif'
 
     im = cv2.imread(filename)
 
-    frequencyFilter = ipcv.filter_highpass(im,
-                                       8,
+    frequencyFilter = ipcv.filter_bandpass(im,
+                                       32,
+                                       10,
                                        filterShape=ipcv.IPCV_GAUSSIAN)
 
     startTime = time.clock()

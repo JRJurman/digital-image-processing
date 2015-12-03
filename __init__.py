@@ -15,4 +15,6 @@ from ipcv.harris import *
 from ipcv.filter_distance import *
 from ipcv.filter_lowpass import *
 from ipcv.filter_highpass import *
+from ipcv.filter_bandreject import *
+from ipcv.filter_bandpass import *
 from ipcv.frequency_filter import *
